@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: ui-monospace, "JetBrains Mono", "Fira Code", "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-sans: var(--font-mono);
+
+  --color-bg: #050807;
+  --color-panel: #0a100e;
+  --color-panel-2: #0e1613;
+  --color-line: #173026;
+  --color-line-strong: #24503d;
+
+  --color-ink: #d7f5e6;
+  --color-ink-2: #9cbcae;
+  --color-ink-3: #62806f;
+
+  --color-neon: #39ff88;
+  --color-neon-dim: #1aa865;
+  --color-cyan: #2bd4f0;
+  --color-violet: #8474f0;
+  --color-hot: #ff4f9a;
+  --color-cold: #2f9ee0;
+  --color-warn: #fbbf24;
+  --color-bad: #ff5d5d;
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: #39ff8840; }
+  input, select, button { font: inherit; }
+  :focus-visible { outline: 1px solid var(--color-neon); outline-offset: 2px; }
+  * { scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }
+}
+
+@layer components {
+  .panel {
+    background: linear-gradient(180deg, var(--color-panel-2), var(--color-panel));
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #00000040, 0 8px 24px -12px #000;
+  }
+  .panel-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-2);
+  }
+  .field {
+    background: #050a08;
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    padding: 5px 8px;
+    color: var(--color-ink);
+    min-width: 0;
+  }
+  .field:focus { border-color: var(--color-neon-dim); outline: none; box-shadow: 0 0 0 2px #39ff8822; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid var(--color-line-strong);
+    background: #0b1a14;
+    color: var(--color-ink);
+    border-radius: 4px;
+    padding: 5px 10px;
+    transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s;
+    white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--color-neon-dim); color: var(--color-neon); box-shadow: 0 0 12px -4px var(--color-neon); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: #0f3a26; border-color: var(--color-neon-dim); color: var(--color-neon); }
+  .btn-danger:hover:not(:disabled) { border-color: var(--color-bad); color: var(--color-bad); box-shadow: 0 0 12px -4px var(--color-bad); }
+  .seg { display: inline-flex; border: 1px solid var(--color-line); border-radius: 4px; overflow: hidden; }
+  .seg > button { padding: 4px 9px; color: var(--color-ink-2); border-right: 1px solid var(--color-line); transition: background-color .15s, color .15s; }
+  .seg > button:last-child { border-right: 0; }
+  .seg > button[aria-pressed="true"] { background: #0f3a26; color: var(--color-neon); }
+  .seg > button:hover:not([aria-pressed="true"]) { color: var(--color-ink); background: #0b1a14; }
+  .glow { text-shadow: 0 0 8px #39ff8866; }
+  .tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .tbl th { text-align: left; font-weight: 500; color: var(--color-ink-3); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid var(--color-line); position: sticky; top: 0; background: var(--color-panel); z-index: 1; }
+  .tbl td { padding: 5px 8px; border-bottom: 1px solid #0f1f18; white-space: nowrap; }
+  .tbl tbody tr:hover td { background: #0c1a14; }
+  .num { text-align: right !important; }
+  .kbd { border: 1px solid var(--color-line-strong); border-radius: 3px; padding: 0 4px; font-size: 11px; color: var(--color-ink-2); }
+}
+
+/* Subtle CRT scanlines */
+.scanlines::after {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  background: repeating-linear-gradient(180deg, transparent 0 2px, #00000018 2px 3px);
+  mix-blend-mode: multiply;
+}
+
+@keyframes pulse-dot { 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
+.pulse-dot { animation: pulse-dot 1s ease-in-out infinite; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(2px) } to { opacity: 1; transform: none } }
+.fade-in { animation: fade-in .18s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot, .fade-in { animation: none; }
+  .btn, .seg > button { transition: none; }
+}
