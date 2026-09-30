@@ -529,3 +529,59 @@ export function analyzeArchiveRtp(c: DrawColumns, r: Range, depth: number): Arch
     topWins,
   };
 }
+
+// ---------------------------------------------------------------- per-level combo detail
+
+export interface LevelStat {
+  m: number;
+  payout: number;
+  probability: number;
+  expectedInterval: number;
+  expectedHits: number;
+  events: number;
+  currentDrought: number;
+  longestDrought: number;
+  meanInterval: number;
+  overdue: number;
+  luck: number;
+  /** Value score (see scanner.ts `valueScore`); NaN for levels that do not return a profit. */
+  score: number;
+}
+
+/** For a tile set, drought / luck statistics for every "≥ M matched" level, M = 1..k. */
+export function analyzeLevels(c: DrawColumns, r: Range, tiles: number[], risk: Risk): LevelStat[] {
+  const k = tiles.length;
+  const n = r.end - r.start + 1;
+  const member = new Uint8Array(KENO_SQUARES);
+  for (const t of tiles) member[t] = 1;
+  const trackers = Array.from({ length: k + 1 }, () => new GapTracker());
+  for (let i = r.start; i <= r.end; i++) {
+    let m = 0;
+    for (let j = 0; j < KENO_DRAWS; j++) m += member[c.drawn[i * KENO_DRAWS + j]];
+    for (let lv = 1; lv <= m; lv++) trackers[lv].hit(i - r.start);
+  }
+  const row = payoutRow(risk, k);
+  const out: LevelStat[] = [];
+  for (let m = 1; m <= k; m++) {
+    const p = atLeastProbability(k, m);
+    const g = trackers[m].summary(n, p);
+    const expectedHits = n * p;
+    const reliability = Math.min(1, expectedHits / 5);
+    const rarity = 1 + Math.log10(Math.max(1, g.expectedInterval)) / 2;
+    out.push({
+      m,
+      payout: row[m],
+      probability: p,
+      expectedInterval: g.expectedInterval,
+      expectedHits,
+      events: g.events,
+      currentDrought: g.currentDrought,
+      longestDrought: g.longestDrought,
+      meanInterval: g.meanInterval,
+      overdue: g.overdueRatio,
+      luck: expectedHits > 0 ? g.events / expectedHits : NaN,
+      score: row[m] > 1 ? g.overdueRatio * Math.log2(1 + row[m]) * reliability * rarity : NaN,
+    });
+  }
+  return out;
+}

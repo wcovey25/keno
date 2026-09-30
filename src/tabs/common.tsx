@@ -32,7 +32,7 @@ export function heatValues(tiles: TileStat[], metric: HeatMetric): { heat: numbe
   return { heat, sub, titles };
 }
 
-export function HeatBoard({ size = 'md', initial = 'freq' }: { size?: 'sm' | 'md'; initial?: HeatMetric }) {
+export function HeatBoard({ size = 'md', initial = 'freq', interactive = true }: { size?: 'sm' | 'md'; initial?: HeatMetric; interactive?: boolean }) {
   const tiles = useStore((s) => s.analysis?.tiles.tiles);
   const recentWindow = useStore((s) => s.analysis?.tiles.recentWindow);
   const selectedTiles = useStore((s) => s.config.tiles);
@@ -42,22 +42,30 @@ export function HeatBoard({ size = 'md', initial = 'freq' }: { size?: 'sm' | 'md
   const hv = useMemo(() => (tiles ? heatValues(tiles, metric) : null), [tiles, metric]);
   if (!hv) return null;
   return (
-    <div className="space-y-2">
+    <div className="mx-auto max-w-[36rem] space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Seg
           label="Heat metric"
           value={metric}
           onChange={setMetric}
           options={[
-            { value: 'freq', label: 'Frequency', title: 'All draws in window (z-score)' },
+            { value: 'freq', label: interactive ? 'Frequency' : 'All-time', title: 'All draws in window (z-score)' },
             { value: 'recent', label: `Recent ${recentWindow ?? ''}`, title: 'Last N draws of the window' },
-            { value: 'drought', label: 'Drought', title: 'Draws since last seen' },
+            { value: 'drought', label: interactive ? 'Drought' : 'Due', title: 'Draws since last seen' },
           ]}
         />
         {metric === 'drought' ? <HeatLegend lowLabel="fresh" highLabel="overdue" /> : <HeatLegend lowLabel="cold" highLabel="hot" />}
       </div>
-      <Board size={size} heat={hv.heat} sub={hv.sub} titles={hv.titles} selected={selected} onToggle={toggleTile} label={`Tile heatmap by ${metric}`} />
-      <p className="text-[11px] text-ink-3">Click squares to add/remove them from the tracked set.</p>
+      <Board
+        size={size}
+        heat={hv.heat}
+        sub={hv.sub}
+        titles={hv.titles}
+        selected={interactive ? selected : undefined}
+        onToggle={interactive ? toggleTile : undefined}
+        label={`Tile heatmap by ${metric}`}
+      />
+      {interactive && <p className="text-[0.6875rem] text-ink-3">Click squares to add/remove them from the tracked set.</p>}
     </div>
   );
 }

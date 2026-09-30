@@ -39,14 +39,14 @@ export default function OverdueTab() {
       <Panel
         title="Tracked set"
         actions={
-          <span className="text-[11px] text-ink-3">
+          <span className="text-[0.6875rem] text-ink-3">
             hit = ≥{set.threshold} of {set.k} · {RISK_LABEL[set.risk]} payouts
           </span>
         }
       >
         <div className="flex flex-wrap items-center gap-3">
           <TileChips tiles={set.tiles} highlight={new Set(set.tiles)} />
-          {partial && <span className="text-[11px] text-warn">Only {set.k} of K={config.k} tiles picked — stats use the {set.k}-spot table.</span>}
+          {partial && <span className="text-[0.6875rem] text-warn">Only {set.k} of K={config.k} tiles picked — stats use the {set.k}-spot table.</span>}
         </div>
       </Panel>
 
@@ -75,13 +75,13 @@ export default function OverdueTab() {
             expected={set.expectedProb.map((p) => p * n)}
             label="Distribution of matches per draw for the tracked set"
           />
-          <p className="mt-2 text-[11px] text-ink-3">
+          <p className="mt-2 text-[0.6875rem] text-ink-3">
             Goodness of fit χ² {fmtNum(set.distChi2, 2)} on {set.distDf} df · p = {fmtP(set.distChi2P)}
           </p>
         </Panel>
         <Panel title={`Last ${set.recentMatches.length} draws`}>
           <Strip values={set.recentMatches} max={set.k} threshold={set.threshold} label="Matches in recent draws; bright bars are hits" />
-          <div className="mt-1 flex justify-between text-[10px] text-ink-3">
+          <div className="mt-1 flex justify-between text-[0.625rem] text-ink-3">
             <span>older</span>
             <span>newest</span>
           </div>

@@ -10,6 +10,7 @@ import type { Risk } from '../core/payouts';
 import type { ScanResult, ScanSort } from '../core/scanner';
 import type { AnalysisResult, ArchiveSummary, PfSummary, VerifyResult } from '../workers/api';
 import type { Progress } from '../workers/rpc';
+import { sfx } from '../lib/sfx';
 
 export const TABS = ['overview', 'tiles', 'overdue', 'scanner', 'rtp', 'verify', 'log', 'export'] as const;
 export type TabId = (typeof TABS)[number];
@@ -54,7 +55,16 @@ export interface Task {
   progress: Progress | null;
 }
 
+export type UiMode = 'standard' | 'advanced';
+
 interface State {
+  mode: UiMode;
+  sound: boolean;
+  welcomeAccepted: boolean;
+  /** Standard mode's auto-run "Top Picks" scan. */
+  picks: ScanState;
+  /** Combination shown in the detail modal. */
+  detail: { tiles: number[] } | null;
   source: SourceKind;
   archive: ArchiveSummary | null;
   pf: PfSummary | null;
@@ -122,12 +132,17 @@ export const DEFAULT_CONFIG: Config = {
 export const useStore = create<State & Actions>()(
   persist(
     (set, get) => ({
+      mode: 'standard',
+      sound: true,
+      welcomeAccepted: false,
+      picks: { status: 'idle', progress: null, result: null, error: null, signature: null },
+      detail: null,
       source: 'archive',
       archive: null,
       pf: null,
       ranges: { archive: { start: 0, end: -1 }, pf: { start: 0, end: -1 } },
       config: DEFAULT_CONFIG,
-      scanConfig: { sort: 'overdue', poolMode: 'all', poolSize: 16, maxCombos: 100_000, minEvents: 0, seed: 1 },
+      scanConfig: { sort: 'value', poolMode: 'all', poolSize: 16, maxCombos: 100_000, minEvents: 0, seed: 1 },
       scan: { status: 'idle', progress: null, result: null, error: null, signature: null },
       analysis: null,
       analysisError: null,
@@ -160,6 +175,8 @@ export const useStore = create<State & Actions>()(
       },
       toast: (kind, text) => {
         const id = ++toastId;
+        if (kind === 'error') sfx.error();
+        else if (kind === 'success') sfx.success();
         set((s) => ({ toasts: [...s.toasts.slice(-3), { id, kind, text }] }));
         setTimeout(() => get().dismissToast(id), kind === 'error' ? 8000 : 4000);
       },
@@ -169,7 +186,24 @@ export const useStore = create<State & Actions>()(
       name: 'keno-scanner-prefs-v44',
       version: 1,
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ config: s.config, scanConfig: s.scanConfig, tab: s.tab }),
+      partialize: (s) => ({
+        config: s.config,
+        scanConfig: s.scanConfig,
+        tab: s.tab,
+        mode: s.mode,
+        sound: s.sound,
+        welcomeAccepted: s.welcomeAccepted,
+      }),
+      // Older saved prefs lack newer fields; merge over defaults instead of replacing.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<State>;
+        return {
+          ...current,
+          ...p,
+          config: { ...current.config, ...p.config },
+          scanConfig: { ...current.scanConfig, ...p.scanConfig },
+        };
+      },
     },
   ),
 );

@@ -36,7 +36,7 @@ export default function LogTab() {
     <Panel
       title="Draw log (newest first)"
       actions={
-        <div className="flex items-center gap-2 text-[11px] text-ink-3">
+        <div className="flex items-center gap-2 text-[0.6875rem] text-ink-3">
           <button type="button" className="btn px-2 py-0.5" disabled={page === 0} onClick={() => setPage(0)}>
             Newest
           </button>
@@ -93,7 +93,7 @@ export default function LogTab() {
           </tbody>
         </table>
       </div>
-      <p className="px-3 py-2 text-[11px] text-ink-3">Highlighted squares: {isArchive ? 'your picks that were drawn' : 'tracked tiles that were drawn'}. Page size = result depth.</p>
+      <p className="px-3 py-2 text-[0.6875rem] text-ink-3">Highlighted squares: {isArchive ? 'your picks that were drawn' : 'tracked tiles that were drawn'}. Page size = result depth.</p>
     </Panel>
   );
 }

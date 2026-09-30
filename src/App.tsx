@@ -7,7 +7,11 @@ import { ConfigPanel } from './components/ConfigPanel';
 import { RangeBar } from './components/RangeBar';
 import { Empty, Note } from './components/ui';
 import { TABS, sourceCount, useStore, type TabId } from './state/store';
-import { startAnalysisScheduler } from './state/actions';
+import { startAnalysisScheduler, startPicksScheduler } from './state/actions';
+import { StandardView } from './standard/StandardView';
+import { ComboModal } from './components/ComboModal';
+import { Welcome } from './components/Welcome';
+import { installSfxDelegation, setSfxEnabled, sfx } from './lib/sfx';
 import { OverviewTab } from './tabs/OverviewTab';
 import { cx } from './lib/format';
 
@@ -46,7 +50,7 @@ function TabContent({ tab }: { tab: TabId }) {
   }
 }
 
-function Welcome() {
+function EmptyState() {
   return (
     <div className="panel">
       <Empty icon={<Binary size={40} />} title="No data loaded">
@@ -62,57 +66,89 @@ function Welcome() {
   );
 }
 
-export function App() {
+function AdvancedView() {
   const tab = useStore((s) => s.tab);
   const setTab = useStore((s) => s.setTab);
   const hasData = useStore((s) => sourceCount(s) > 0);
   const analysisError = useStore((s) => s.analysisError);
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] 2xl:grid-cols-[22rem_minmax(0,1fr)]">
+      <aside className="space-y-4">
+        <DataPanel />
+        <ConfigPanel />
+      </aside>
+      <main className="min-w-0 space-y-4">
+        <RangeBar />
+        <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-line px-1" role="tablist" aria-label="Analysis views">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              role="tab"
+              type="button"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={cx(
+                '-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 whitespace-nowrap transition-colors',
+                tab === t ? 'border-neon text-neon glow' : 'border-transparent text-ink-3 hover:text-ink',
+              )}
+            >
+              {TAB_META[t].icon}
+              {TAB_META[t].label}
+            </button>
+          ))}
+        </nav>
+        {analysisError && <Note tone="bad">Analysis failed: {analysisError}</Note>}
+        <div role="tabpanel" className="fade-in" key={tab}>
+          {!hasData && NEEDS_DATA.has(tab) ? (
+            <EmptyState />
+          ) : (
+            <Suspense fallback={<div className="panel p-6 text-ink-3">Loading view…</div>}>
+              <TabContent tab={tab} />
+            </Suspense>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export function App() {
+  const mode = useStore((s) => s.mode);
+  const analysisError = useStore((s) => s.analysisError);
 
   useEffect(() => startAnalysisScheduler(), []);
+  useEffect(() => startPicksScheduler(), []);
+  useEffect(() => installSfxDelegation(), []);
+  useEffect(() => {
+    setSfxEnabled(useStore.getState().sound);
+    return useStore.subscribe((s, prev) => {
+      if (s.sound === prev.sound) return;
+      setSfxEnabled(s.sound);
+      if (s.sound) sfx.click();
+    });
+  }, []);
 
   return (
     <div className="scanlines min-h-full">
       <Header />
-      <div className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-4">
-          <DataPanel />
-          <ConfigPanel />
-        </aside>
-        <main className="min-w-0 space-y-4">
-          <RangeBar />
-          <nav className="flex gap-1 overflow-x-auto border-b border-line" role="tablist" aria-label="Analysis views">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                role="tab"
-                type="button"
-                aria-selected={tab === t}
-                onClick={() => setTab(t)}
-                className={cx(
-                  '-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 whitespace-nowrap transition-colors',
-                  tab === t ? 'border-neon text-neon glow' : 'border-transparent text-ink-3 hover:text-ink',
-                )}
-              >
-                {TAB_META[t].icon}
-                {TAB_META[t].label}
-              </button>
-            ))}
-          </nav>
-          {analysisError && <Note tone="bad">Analysis failed: {analysisError}</Note>}
-          <div role="tabpanel" className="fade-in" key={tab}>
-            {!hasData && NEEDS_DATA.has(tab) ? (
-              <Welcome />
-            ) : (
-              <Suspense fallback={<div className="panel p-6 text-ink-3">Loading view…</div>}>
-                <TabContent tab={tab} />
-              </Suspense>
-            )}
+      <div className="mx-auto max-w-[120rem] px-3 py-4 sm:px-4">
+        {mode === 'standard' ? (
+          <div key="standard" className="fade-in space-y-4">
+            {analysisError && <Note tone="bad">Analysis failed: {analysisError}</Note>}
+            <StandardView />
           </div>
-        </main>
+        ) : (
+          <div key="advanced" className="fade-in">
+            <AdvancedView />
+          </div>
+        )}
       </div>
-      <footer className="mx-auto max-w-[1600px] px-4 pb-6 text-[11px] text-ink-3">
-        Statistical analysis only. Each Keno round is independent: past frequencies and “overdue” streaks do not change future odds. Gamble responsibly.
+      <footer className="mx-auto max-w-[120rem] px-3 pb-6 text-[0.6875rem] text-ink-3 sm:px-4">
+        For fun and analysis only. Each Keno round is independent: past frequencies and “overdue” streaks do not change future odds. 18+ · Gamble responsibly ·
+        ncpgambling.org
       </footer>
+      <ComboModal />
+      <Welcome />
       <Toasts />
     </div>
   );

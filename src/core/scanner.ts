@@ -16,7 +16,7 @@ import { KENO_DRAWS, KENO_SQUARES } from './provablyFair';
 import { atLeastProbability, choose, payoutRow, theoreticalRtp, type Risk } from './payouts';
 import { mulberry32, popcount32 } from './mathx';
 
-export const SCAN_SORTS = ['overdue', 'drought', 'longest', 'cold', 'hot', 'rtp'] as const;
+export const SCAN_SORTS = ['value', 'overdue', 'drought', 'longest', 'cold', 'hot', 'rtp'] as const;
 export type ScanSort = (typeof SCAN_SORTS)[number];
 
 export interface ScanParams {
@@ -43,6 +43,71 @@ export interface ComboResult {
   overdueRatio: number;
   droughtProbability: number;
   rtp: number;
+  /** Best-scoring paying hit level (always computed; drives the 'value' ranking). */
+  best: LevelPick | null;
+}
+
+/**
+ * One paying hit level M of a combination ("≥ M of K matched"), scored the way
+ * Keno Scanner v43's Recommendations did:
+ *
+ *   score = overdue × log₂(1 + payout) × reliability × rarity
+ *
+ *   overdue     = current gap ÷ expected interval (1 / P(≥M))
+ *   log₂ payout = rewards bigger multipliers without letting 1000× swamp the list
+ *   reliability = min(1, expected hits in window ÷ 5) — too little data ⇒ damped
+ *   rarity      = 1 + log₁₀(expected interval) ÷ 2 — rarer events weigh more
+ *
+ * This is a ranking for fun and exploration — it does not change the odds.
+ */
+export interface LevelPick {
+  m: number;
+  payout: number;
+  expectedInterval: number;
+  expectedHits: number;
+  events: number;
+  gap: number;
+  overdue: number;
+  /** actual ÷ expected hits at this level. */
+  luck: number;
+  score: number;
+}
+
+export function valueScore(gap: number, expectedInterval: number, payout: number, expectedHits: number): number {
+  const overdue = gap / expectedInterval;
+  const reliability = Math.min(1, expectedHits / 5);
+  const rarity = 1 + Math.log10(Math.max(1, expectedInterval)) / 2;
+  return overdue * Math.log2(1 + payout) * reliability * rarity;
+}
+
+/** Paying levels worth targeting: hit counts whose multiplier returns a profit. */
+export function profitLevels(risk: Risk, k: number): { m: number; payout: number; p: number }[] {
+  const row = payoutRow(risk, k);
+  const out: { m: number; payout: number; p: number }[] = [];
+  for (let m = 1; m <= k; m++) if (row[m] > 1) out.push({ m, payout: row[m], p: atLeastProbability(k, m) });
+  return out;
+}
+
+/** Events and last position of "counter ≥ m" over bit-planes built by evaluateCombo. */
+export function levelFromPlanes(planes: Uint32Array, words: number, n: number, m: number): { events: number; last: number } {
+  const tb0 = m & 1, tb1 = (m >> 1) & 1, tb2 = (m >> 2) & 1, tb3 = (m >> 3) & 1;
+  let events = 0, lastWord = -1, lastMask = 0;
+  for (let w = 0; w < words; w++) {
+    const p0 = planes[w], p1 = planes[words + w], p2 = planes[2 * words + w], p3 = planes[3 * words + w];
+    let gt = 0, eq = ~0;
+    if (tb3) eq &= p3; else { gt |= eq & p3; eq &= ~p3; }
+    if (tb2) eq &= p2; else { gt |= eq & p2; eq &= ~p2; }
+    if (tb1) eq &= p1; else { gt |= eq & p1; eq &= ~p1; }
+    if (tb0) eq &= p0; else { gt |= eq & p0; eq &= ~p0; }
+    let ge = gt | eq;
+    if (w === words - 1 && (n & 31)) ge &= (1 << (n & 31)) - 1;
+    if (ge) {
+      events += popcount32(ge);
+      lastWord = w;
+      lastMask = ge;
+    }
+  }
+  return { events, last: lastWord < 0 ? -1 : (lastWord << 5) + 31 - Math.clz32(lastMask) };
 }
 
 export interface ScanResult {
@@ -78,6 +143,7 @@ function scoreOf(r: ComboResult, sort: ScanSort): number {
     case 'hot': return r.z;
     case 'cold': return -r.z;
     case 'rtp': return r.rtp;
+    case 'value': return r.best ? r.best.score : -Infinity;
   }
 }
 
@@ -213,6 +279,7 @@ export function scanCombos(
   // h = 0 never pays for k ≥ 2 (only 1-pick Low/Medium do); handled below for completeness.
   for (let h = 1; h <= k; h++) if (row[h] > 0) payMults.push([h, row[h]]);
   const zeroHitPay = row[0];
+  const levels = profitLevels(params.risk, k);
 
   const { bits, words } = buildTileBitsets(drawn, n);
   const planes = new Uint32Array(4 * words);
@@ -225,6 +292,26 @@ export function scanCombos(
   const tiles = new Int32Array(k);
   let scanned = 0;
   const progressEvery = Math.max(1, Math.floor(total / 100));
+
+  // Planes still hold this combo's counters after evaluateCombo (the zero-hit path
+  // rebuilds identical planes), so levels can be scored lazily from them.
+  const bestLevel = (): LevelPick | null => {
+    let best: LevelPick | null = null;
+    for (const lv of levels) {
+      const { events, last } = levelFromPlanes(planes, words, n, lv.m);
+      const gap = last < 0 ? n : n - 1 - last;
+      const expectedInterval = 1 / lv.p;
+      const expectedHits = n * lv.p;
+      const score = valueScore(gap, expectedInterval, lv.payout, expectedHits);
+      if (!best || score > best.score) {
+        best = {
+          m: lv.m, payout: lv.payout, expectedInterval, expectedHits, events, gap,
+          overdue: gap / expectedInterval, luck: expectedHits > 0 ? events / expectedHits : NaN, score,
+        };
+      }
+    }
+    return best;
+  };
 
   const evalCurrent = () => {
     for (let i = 0; i < k; i++) tiles[i] = pool[combo[i]];
@@ -250,9 +337,13 @@ export function scanCombos(
       overdueRatio: current / expectedInterval,
       droughtProbability: Math.pow(1 - p, current),
       rtp: n > 0 ? payout / n : NaN,
+      best: params.sort === 'value' ? bestLevel() : null,
     };
     const s = scoreOf(res, params.sort);
-    if (s > top.floor()) top.push(s, res);
+    if (s > top.floor()) {
+      res.best ??= bestLevel();
+      top.push(s, res);
+    }
   };
 
   if (exhaustive) {

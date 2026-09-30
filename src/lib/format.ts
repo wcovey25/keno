@@ -48,3 +48,12 @@ export function toLocalInput(ms: number | null): string {
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(' ');
 }
+
+/** True on layouts wide enough for the two-column desktop view (Tailwind `lg`). */
+export function isWideScreen(): boolean {
+  try {
+    return window.matchMedia('(min-width: 1024px)').matches;
+  } catch {
+    return true;
+  }
+}

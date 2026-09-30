@@ -3,7 +3,7 @@ import type { Range, SourceKind } from '../core/dataset';
 import type { FileReport, NumberBase, NumberBaseSetting } from '../core/parser';
 import type { Risk } from '../core/payouts';
 import type { SeedCheck } from '../core/provablyFair';
-import type { ArchiveRtp, SetAnalysis, TileAnalysis } from '../core/stats';
+import type { ArchiveRtp, LevelStat, SetAnalysis, TileAnalysis } from '../core/stats';
 import type { DrawRow } from '../core/exporters';
 import type { ScanParams, ScanResult } from '../core/scanner';
 
@@ -97,6 +97,16 @@ export interface ExportFile {
   content: string;
 }
 
+export interface ComboDetail {
+  tiles: number[];
+  risk: Risk;
+  n: number;
+  levels: LevelStat[];
+  /** Tracker analysis at `threshold` (the best-scoring level), with simulated P&L. */
+  set: SetAnalysis;
+  threshold: number;
+}
+
 export interface DataApi {
   ingest(args: { files: File[] }): ArchiveSummary;
   removeFile(args: { name: string }): ArchiveSummary;
@@ -109,6 +119,7 @@ export interface DataApi {
   scanInput(args: { source: SourceKind; range: Range }): Uint8Array;
   verify(args: { range: Range; depth: number }): VerifyResult;
   timeToRange(args: { source: SourceKind; from: number | null; to: number | null }): Range | null;
+  comboDetail(args: { source: SourceKind; range: Range; tiles: number[]; risk: Risk }): ComboDetail;
   export(args: { kind: ExportKind; format: ExportFormat; source: SourceKind; range: Range; analyze: AnalyzeArgs }): ExportFile;
 }
 

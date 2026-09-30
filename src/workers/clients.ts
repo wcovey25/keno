@@ -8,3 +8,8 @@ export const dataWorker = new RpcClient<DataApi>(
 export const scanWorker = new RpcClient<ScanApi>(
   () => new Worker(new URL('./scan.worker.ts', import.meta.url), { type: 'module', name: 'keno-scan' }),
 );
+
+/** Separate scanner instance for Standard mode's auto "Top Picks", so it never cancels an Advanced scan. */
+export const picksWorker = new RpcClient<ScanApi>(
+  () => new Worker(new URL('./scan.worker.ts', import.meta.url), { type: 'module', name: 'keno-picks' }),
+);

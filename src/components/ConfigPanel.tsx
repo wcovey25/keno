@@ -4,7 +4,7 @@ import { useStore } from '../state/store';
 import { RISKS, RISK_LABEL, atLeastProbability } from '../core/payouts';
 import { Board } from './Board';
 import { Field, Panel, Seg } from './ui';
-import { fmtNum, fmtPct } from '../lib/format';
+import { fmtNum, fmtPct, isWideScreen } from '../lib/format';
 
 const DEPTHS = [10, 25, 50, 100];
 
@@ -29,7 +29,7 @@ export function TilePicker() {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-[11px]">
+      <div className="flex items-center justify-between text-[0.6875rem]">
         <span className="text-ink-3">
           Tracked tiles{' '}
           <b className={config.tiles.length === config.k ? 'text-neon' : 'text-warn'}>
@@ -66,9 +66,9 @@ export function ConfigPanel() {
   const pHit = atLeastProbability(config.k, config.threshold);
 
   return (
-    <Panel title="Configuration" icon={<Settings2 size={14} />}>
+    <Panel title="Configuration" icon={<Settings2 size={14} />} collapsible defaultOpen={isWideScreen()}>
       <div className="space-y-3">
-        <Field label="Spots (K)">
+        <Field group label="Spots (K)">
           <Seg
             label="Number of spots"
             value={config.k}
@@ -76,10 +76,11 @@ export function ConfigPanel() {
             options={Array.from({ length: 8 }, (_, i) => ({ value: i + 3, label: String(i + 3) }))}
           />
         </Field>
-        <Field label="Risk profile">
+        <Field group label="Risk profile">
           <Seg label="Risk profile" value={config.risk} onChange={(risk) => setConfig({ risk })} options={RISKS.map((r) => ({ value: r, label: RISK_LABEL[r] }))} />
         </Field>
         <Field
+          group
           label="Overdue threshold (min matches)"
           hint={
             <>

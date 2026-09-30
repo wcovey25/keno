@@ -57,3 +57,37 @@ describe('scanCombos', () => {
     expect(() => scanCombos(c.drawn, { ...base, pool: [1, 2] })).toThrow();
   });
 });
+
+describe('value ranking (Top Picks)', () => {
+  const c = syntheticColumns(2000, 33);
+  const r = { start: 0, end: 1999 };
+
+  it('best level matches analyzeLevels for every returned combo', async () => {
+    const { analyzeLevels } = await import('../src/core/stats');
+    for (const risk of ['classic', 'high'] as const) {
+      const res = scanCombos(c.drawn, { ...base, k: 6, threshold: 3, pool: Array.from({ length: 14 }, (_, i) => i * 2), risk, sort: 'value', depth: 30 });
+      expect(res.results.length).toBe(30);
+      for (let i = 1; i < res.results.length; i++) expect(res.results[i - 1].best!.score).toBeGreaterThanOrEqual(res.results[i].best!.score);
+      for (const combo of res.results) {
+        const levels = analyzeLevels(c, r, combo.tiles, risk);
+        const scored = levels.filter((l) => !Number.isNaN(l.score));
+        const top = scored.reduce((a, b) => (b.score > a.score ? b : a));
+        expect(combo.best!.m).toBe(top.m);
+        expect(combo.best!.score).toBeCloseTo(top.score, 9);
+        expect(combo.best!.events).toBe(top.events);
+        expect(combo.best!.gap).toBe(top.currentDrought);
+      }
+    }
+  });
+
+  it('attaches best level lazily for other sorts', () => {
+    const res = scanCombos(c.drawn, { ...base, sort: 'drought', depth: 5 });
+    for (const r of res.results) expect(r.best).not.toBeNull();
+  });
+
+  it('only scores levels that return a profit', async () => {
+    const { profitLevels } = await import('../src/core/scanner');
+    expect(profitLevels('high', 5).map((l) => l.m)).toEqual([3, 4, 5]);
+    expect(profitLevels('classic', 5).map((l) => l.m)).toEqual([2, 3, 4, 5]);
+  });
+});

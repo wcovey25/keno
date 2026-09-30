@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 function Card({ title, desc, children }: { title: string; desc: ReactNode; children: ReactNode }) {
   return (
     <Panel title={title} icon={<Download size={14} />}>
-      <p className="mb-3 min-h-10 text-[12px] text-ink-2">{desc}</p>
+      <p className="mb-3 min-h-10 text-[0.75rem] text-ink-2">{desc}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </Panel>
   );

@@ -12,7 +12,7 @@ export function Toasts() {
           key={t.id}
           role={t.kind === 'error' ? 'alert' : 'status'}
           className={cx(
-            'fade-in pointer-events-auto flex max-w-md items-start gap-2 rounded border bg-panel px-3 py-2 text-[12px] shadow-xl',
+            'fade-in pointer-events-auto flex max-w-md items-start gap-2 rounded border bg-panel px-3 py-2 text-[0.75rem] shadow-xl',
             t.kind === 'error' ? 'border-bad/60 text-bad' : t.kind === 'success' ? 'border-neon-dim text-neon' : 'border-line-strong text-ink',
           )}
         >

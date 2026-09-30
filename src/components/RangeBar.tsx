@@ -169,7 +169,7 @@ export function RangeBar() {
           <SlidersHorizontal size={14} className="text-neon-dim" aria-hidden />
           <span className="panel-title">Window</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[12px]">
+        <div className="flex items-center gap-1.5 text-[0.75rem]">
           <span className="text-ink-3">Bet #</span>
           <NumberInput label="Window start (bet number)" value={local.start + 1} min={1} max={local.end + 1} onCommit={(v) => update({ start: v - 1, end: local.end })} />
           <span className="text-ink-3">→</span>
@@ -180,14 +180,14 @@ export function RangeBar() {
             <button
               key={p.label}
               type="button"
-              className={cx('btn px-2 py-0.5 text-[11px]', p.r.start === local.start && p.r.end === local.end && 'border-neon-dim text-neon')}
+              className={cx('btn px-2 py-0.5 text-[0.6875rem]', p.r.start === local.start && p.r.end === local.end && 'border-neon-dim text-neon')}
               onClick={() => update(p.r)}
             >
               {p.label}
             </button>
           ))}
         </div>
-        <div className="ml-auto text-right text-[12px] text-ink-2 tabular-nums">
+        <div className="ml-auto text-right text-[0.75rem] text-ink-2 tabular-nums">
           <b className="text-neon glow">{fmtInt(count)}</b> / {fmtInt(n)} draws
           {analysis && analysis.timeFrom !== null && (
             <span className="ml-2 text-ink-3">
@@ -206,7 +206,7 @@ export function RangeBar() {
       </div>
       {hasTime && (
         <form
-          className="mt-1 flex flex-wrap items-center gap-2 text-[12px]"
+          className="mt-1 flex flex-wrap items-center gap-2 text-[0.75rem]"
           onSubmit={(e) => {
             e.preventDefault();
             const f = from ? new Date(from).getTime() : null;
@@ -220,7 +220,7 @@ export function RangeBar() {
           <input type="datetime-local" className="field py-0.5" aria-label="From time" value={from} onChange={(e) => setFrom(e.target.value)} />
           <span className="text-ink-3">→</span>
           <input type="datetime-local" className="field py-0.5" aria-label="To time" value={to} onChange={(e) => setTo(e.target.value)} />
-          <button type="submit" className="btn px-2 py-0.5 text-[11px]">
+          <button type="submit" className="btn px-2 py-0.5 text-[0.6875rem]">
             Apply
           </button>
         </form>

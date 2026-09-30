@@ -33,21 +33,21 @@ function SingleRound() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
         <div className="space-y-2.5">
           <Field label="Server seed (unhashed)">
-            <input className="field font-mono text-[12px]" spellCheck={false} autoComplete="off" value={serverSeed} onChange={(e) => setServerSeed(e.target.value.trim())} />
+            <input className="field font-mono text-[0.75rem]" spellCheck={false} autoComplete="off" value={serverSeed} onChange={(e) => setServerSeed(e.target.value.trim())} />
           </Field>
           <Field label="Hashed server seed (optional)">
-            <input className="field font-mono text-[12px]" spellCheck={false} autoComplete="off" value={hashed} onChange={(e) => setHashed(e.target.value.trim())} />
+            <input className="field font-mono text-[0.75rem]" spellCheck={false} autoComplete="off" value={hashed} onChange={(e) => setHashed(e.target.value.trim())} />
           </Field>
-          <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-2">
             <Field label="Client seed">
-              <input className="field font-mono text-[12px]" spellCheck={false} autoComplete="off" value={clientSeed} onChange={(e) => setClientSeed(e.target.value)} />
+              <input className="field font-mono text-[0.75rem]" spellCheck={false} autoComplete="off" value={clientSeed} onChange={(e) => setClientSeed(e.target.value)} />
             </Field>
             <Field label="Nonce">
               <input className="field tabular-nums" inputMode="numeric" value={nonce} onChange={(e) => setNonce(e.target.value)} />
             </Field>
           </div>
           {result && (
-            <div className="space-y-2 pt-1 text-[12px]">
+            <div className="space-y-2 pt-1 text-[0.75rem]">
               <div className="break-all text-ink-3">
                 sha256(server seed) = <span className="text-ink-2">{result.check.computed}</span>
               </div>

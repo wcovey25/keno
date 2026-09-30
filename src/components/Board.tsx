@@ -42,7 +42,7 @@ export const Board = memo(function Board({ heat, sub, titles, selected, drawn, o
         const style = heat && !isDrawn ? { background: divergingFill(heat[t]) } : undefined;
         const common = cx(
           'relative flex flex-col items-center justify-center rounded-[3px] border tabular-nums select-none',
-          size === 'xs' ? 'h-4 text-[8px] leading-none' : size === 'sm' ? 'aspect-square text-[11px]' : 'aspect-square text-[13px] sm:text-sm',
+          size === 'xs' ? 'h-4 text-[0.5rem] leading-none' : size === 'sm' ? 'aspect-square text-[0.6875rem]' : 'aspect-square text-[0.8125rem] sm:text-sm',
           isDrawn ? (hit ? 'border-neon bg-neon text-bg font-bold' : 'border-violet/70 bg-violet/40 text-ink') : 'border-line',
           !heat && !isDrawn && 'bg-panel-2',
           isSel && !hit && 'border-neon text-neon shadow-[0_0_10px_-2px_var(--color-neon),inset_0_0_0_1px_var(--color-neon)]',
@@ -51,7 +51,7 @@ export const Board = memo(function Board({ heat, sub, titles, selected, drawn, o
         const content = (
           <>
             <span className={cx(size !== 'xs' && 'font-semibold')}>{size === 'xs' ? '' : t + 1}</span>
-            {sub && size !== 'xs' && <span className="text-[9px] leading-none opacity-75 sm:text-[10px]">{sub[t]}</span>}
+            {sub && size !== 'xs' && <span className="text-[0.5625rem] leading-none opacity-75 sm:text-[0.625rem]">{sub[t]}</span>}
           </>
         );
         return interactive ? (
@@ -59,6 +59,7 @@ export const Board = memo(function Board({ heat, sub, titles, selected, drawn, o
             key={t}
             type="button"
             aria-pressed={isSel}
+            data-tile={t}
             aria-label={`Square ${t + 1}${titles ? `: ${titles[t]}` : ''}`}
             title={titles?.[t]}
             onClick={() => onToggle!(t)}
@@ -80,7 +81,7 @@ export const Board = memo(function Board({ heat, sub, titles, selected, drawn, o
 export function HeatLegend({ lowLabel, highLabel }: { lowLabel: string; highLabel: string }) {
   const stops = [-1, -0.5, 0, 0.5, 1];
   return (
-    <div className="flex items-center gap-2 text-[11px] text-ink-3" aria-hidden>
+    <div className="flex items-center gap-2 text-[0.6875rem] text-ink-3" aria-hidden>
       <span>{lowLabel}</span>
       <div className="flex overflow-hidden rounded-sm border border-line">
         {stops.map((s) => (

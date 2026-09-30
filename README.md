@@ -3,6 +3,46 @@
 A client-side analytics dashboard for **Stake Originals Keno**. It imports bet archives, verifies provably fair seeds and computes tile, overdue and RTP statistics.
 All parsing, hashing and math run **in your browser, in Web Workers**. The server only serves static files, and your data and seeds never leave the tab.
 
+## Two modes
+
+A toggle at the top of the page switches between two modes. The choice is remembered.
+
+* **Standard** (default) has three steps:
+  1. Load your rounds.
+  2. Choose spots (3–10), risk, and how many recent rounds to look at.
+  3. Read the **Top Picks**, which re-scan automatically whenever something changes. Tap a pick to see its board, how often each winning level hits, and the profit it would have made. **Copy tiles** puts the numbers on your clipboard.
+* **Advanced** is the full toolkit: range slider and time window, every scanner sort and pool, tracker, RTP breakdowns, verification, the draw log and exports.
+
+### Top Picks scoring (from v43's Recommendations)
+
+For every paying hit level M ("≥ M of K matched", only levels whose multiplier returns a profit):
+
+```
+score = overdue × log₂(1 + payout) × reliability × rarity
+overdue     = rounds since last ≥M hit ÷ expected interval (1 / P(≥M))
+reliability = min(1, expected hits in the window ÷ 5)
+rarity      = 1 + log₁₀(expected interval) ÷ 2
+```
+
+Each combination is ranked by its best level. Two more figures are shown:
+
+* **Luck** = actual hits ÷ expected hits.
+* **Due** = the overdue ratio.
+
+These scores are a fun way to choose numbers. Every round is independent, so they don't change the odds.
+
+### Hashed vs revealed seeds
+
+While a seed pair is **active**, Stake only shows the SHA-256 *hash* of the server seed. A hash is one-way, so it cannot regenerate any round. That is by design: past and future rounds come from the same seed, so anything that rebuilt past rounds from the hash could also predict future ones.
+
+You can still see your past results because Stake's server records them in your **bet history**. Export it (Account → Bet Archive → Export JSON) and load it.
+
+After you **rotate** seeds, Stake reveals the server seed. Enter it under **Seeds → Rotated / revealed** to regenerate those rounds and verify every archived bet against them.
+
+### Sound
+
+Every control gives short, quiet feedback: a tick for toggles, a note for each tile, a soft chime when data loads or a scan finishes. The sounds are synthesized with Web Audio, so there are no audio files. The speaker button in the header mutes them, and the choice is remembered.
+
 ## Stack
 
 | Layer | Choice | Why |
@@ -111,7 +151,10 @@ npm run sample       # writes samples/*.json (3,000 bets, 2 overlapping files) +
 
 `wrangler.toml` deploys the built SPA as a **Worker with static assets**. There is no server code. `not_found_handling = "single-page-application"` serves `index.html` for deep links.
 
+Requires Node 20.19+ or 22.12+. On a fresh download or clone (Windows, macOS or Linux), install dependencies first. Otherwise the build fails with `'tsc' is not recognized`.
+
 ```bash
+npm ci                      # once per checkout: installs the exact locked versions
 npx wrangler login          # once
 npm run deploy              # = npm run build && wrangler deploy
 npm run cf:dev              # build + run locally on the Workers runtime (http://localhost:8787)

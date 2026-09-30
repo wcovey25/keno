@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Crosshair, Download, Play, Square } from 'lucide-react';
 import { useStore, type PoolMode } from '../state/store';
-import { cancelScan, exportScan, runScan, scanPool, scanSignature } from '../state/actions';
+import { cancelScan, exportScan, openDetail, runScan, scanPool, scanSignature } from '../state/actions';
 import { Badge, Field, Note, Panel, ProgressBar, Seg, TileChips } from '../components/ui';
 import { DataTable, type Column } from '../components/DataTable';
 import { choose } from '../core/payouts';
@@ -9,6 +9,7 @@ import type { ComboResult, ScanSort } from '../core/scanner';
 import { fmtInt, fmtNum, fmtP, fmtPct, fmtSigned } from '../lib/format';
 
 const SORTS: { value: ScanSort; label: string; title: string }[] = [
+  { value: 'value', label: 'Value ★', title: 'v43 Recommendations: overdue × log₂(1+payout) × reliability × rarity, best paying level' },
   { value: 'overdue', label: 'Overdue×', title: 'Current drought ÷ expected interval' },
   { value: 'drought', label: 'Drought', title: 'Current drought length' },
   { value: 'longest', label: 'Longest', title: 'Longest drought in window' },
@@ -50,6 +51,13 @@ export default function ScannerTab() {
   const cols: Column<ComboResult>[] = [
     { key: 'rank', label: '#', render: (_, i) => <span className="text-ink-3">{i + 1}</span> },
     { key: 'tiles', label: 'Tiles', render: (c) => <TileChips tiles={c.tiles} /> },
+    {
+      key: 'best',
+      label: 'Best target',
+      render: (c) => (c.best ? <span title={`score ${fmtNum(c.best.score, 2)} · luck ${fmtNum(c.best.luck, 2)}`}>{c.best.m}+ → {fmtNum(c.best.payout, 2)}× · {fmtNum(c.best.overdue, 1)}× due</span> : '—'),
+      sort: (c) => c.best?.score ?? -Infinity,
+      title: 'Highest value-score paying level: matches needed → payout · current gap ÷ usual gap',
+    },
     { key: 'events', label: 'Hits', numeric: true, render: (c) => fmtInt(c.events), sort: (c) => c.events },
     { key: 'rate', label: 'Rate', numeric: true, render: (c) => fmtPct(c.rate), sort: (c) => c.rate },
     { key: 'z', label: 'z', numeric: true, render: (c) => fmtSigned(c.z, 2), sort: (c) => c.z },
@@ -65,7 +73,7 @@ export default function ScannerTab() {
       render: (c) => (
         <button
           type="button"
-          className="btn px-1.5 py-0.5 text-[11px]"
+          className="btn px-1.5 py-0.5 text-[0.6875rem]"
           onClick={(e) => {
             e.stopPropagation();
             setConfig({ tiles: c.tiles });
@@ -83,10 +91,10 @@ export default function ScannerTab() {
       <Panel title="Combination scanner" icon={<Crosshair size={14} />}>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-3">
-            <Field label="Rank by">
+            <Field group label="Rank by">
               <Seg label="Rank combinations by" value={scanConfig.sort} onChange={(sort) => setScanConfig({ sort })} options={SORTS} />
             </Field>
-            <Field label="Candidate pool">
+            <Field group label="Candidate pool">
               <div className="flex flex-wrap items-center gap-2">
                 <Seg label="Candidate pool" value={scanConfig.poolMode} onChange={(poolMode) => setScanConfig({ poolMode })} options={POOLS} />
                 {['hot', 'cold', 'overdue'].includes(scanConfig.poolMode) && (
@@ -102,7 +110,7 @@ export default function ScannerTab() {
                 )}
               </div>
             </Field>
-            <div className="text-[11px] text-ink-3">
+            <div className="text-[0.6875rem] text-ink-3">
               Pool: <TileChips tiles={pool} />
             </div>
           </div>
@@ -118,7 +126,7 @@ export default function ScannerTab() {
                 <input type="number" className="field tabular-nums" value={scanConfig.seed} onChange={(e) => setScanConfig({ seed: Number(e.target.value) || 0 })} />
               </Field>
             </div>
-            <div className="space-y-1 text-[12px] text-ink-2">
+            <div className="space-y-1 text-[0.75rem] text-ink-2">
               <div>
                 Search space C({pool.length}, {config.k}) = <b className="text-ink">{fmtInt(space)}</b> →{' '}
                 {exhaustive ? <Badge tone="good">exhaustive</Badge> : <Badge tone="warn">random sample of {fmtInt(combos)}</Badge>}
@@ -153,7 +161,7 @@ export default function ScannerTab() {
         {running && (
           <div className="mt-3 space-y-1">
             <ProgressBar value={scan.progress ? scan.progress.done / Math.max(1, scan.progress.total) : null} label="Scan progress" />
-            <div className="text-[11px] text-ink-3 tabular-nums">
+            <div className="text-[0.6875rem] text-ink-3 tabular-nums">
               {scan.progress ? `${fmtInt(scan.progress.done)} / ${fmtInt(scan.progress.total)} combinations` : 'Preparing…'}
             </div>
           </div>
@@ -167,18 +175,25 @@ export default function ScannerTab() {
           actions={
             <>
               {stale && <Badge tone="warn">settings changed — re-run</Badge>}
-              <span className="text-[11px] text-ink-3">
+              <span className="text-[0.6875rem] text-ink-3">
                 {fmtInt(r.scanned)} {r.mode} · {fmtNum(r.elapsedMs / 1000, 2)} s · expected rate {fmtPct(r.expectedRate)} · theo RTP {fmtPct(r.theoreticalRtp)}
               </span>
             </>
           }
           bodyClass="p-0"
         >
-          <DataTable rows={r.results} columns={cols} rowKey={(c) => c.tiles.join('-')} empty="No combination met the minimum hits filter." maxHeight={640} />
+          <DataTable
+            rows={r.results}
+            columns={cols}
+            rowKey={(c) => c.tiles.join('-')}
+            empty="No combination met the minimum hits filter."
+            maxHeight={640}
+            onRowClick={(c) => openDetail(c.tiles)}
+          />
         </Panel>
       )}
       <Note>
-        With thousands of combinations, some will always look extreme by chance alone (multiple comparisons). A top-ranked “overdue” combo is expected even on
+        Click a row for its board, per-level history and P&amp;L. With thousands of combinations, some will always look extreme by chance alone (multiple comparisons). A top-ranked “overdue” combo is expected even on
         perfectly fair data; it carries no predictive power for the next draw.
       </Note>
     </div>

@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Info } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { ChevronDown, Info, X } from 'lucide-react';
 import { cx } from '../lib/format';
 
 export function Panel({
@@ -9,6 +9,8 @@ export function Panel({
   children,
   className,
   bodyClass,
+  collapsible = false,
+  defaultOpen = true,
 }: {
   title?: ReactNode;
   icon?: ReactNode;
@@ -16,17 +18,42 @@ export function Panel({
   children: ReactNode;
   className?: string;
   bodyClass?: string;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
+  const shown = !collapsible || open;
   return (
     <section className={cx('panel min-w-0', className)}>
       {(title || actions) && (
-        <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-          {icon && <span className="text-neon-dim">{icon}</span>}
-          {title && <h2 className="panel-title">{title}</h2>}
-          <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div>
+        <header className={cx('flex flex-wrap items-center gap-2 px-3 py-2', shown && 'border-b border-line')}>
+          {collapsible ? (
+            <button
+              type="button"
+              className="-my-1 flex min-w-0 items-center gap-2 py-1 text-left"
+              aria-expanded={open}
+              aria-controls={bodyId}
+              onClick={() => setOpen(!open)}
+            >
+              <ChevronDown size={14} className={cx('shrink-0 text-ink-3 transition-transform', !open && '-rotate-90')} aria-hidden />
+              {icon && <span className="text-neon-dim">{icon}</span>}
+              {title && <h2 className="panel-title">{title}</h2>}
+            </button>
+          ) : (
+            <>
+              {icon && <span className="text-neon-dim">{icon}</span>}
+              {title && <h2 className="panel-title">{title}</h2>}
+            </>
+          )}
+          {actions && <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div>}
         </header>
       )}
-      <div className={cx('p-3', bodyClass)}>{children}</div>
+      {shown && (
+        <div id={bodyId} className={cx('p-3', bodyClass)}>
+          {children}
+        </div>
+      )}
     </section>
   );
 }
@@ -45,9 +72,9 @@ const toneText: Record<Tone, string> = {
 export function Stat({ label, value, sub, tone = 'neutral', title }: { label: string; value: ReactNode; sub?: ReactNode; tone?: Tone; title?: string }) {
   return (
     <div className="panel min-w-0 px-3 py-2.5" title={title}>
-      <div className="truncate text-[10px] uppercase tracking-[0.14em] text-ink-3">{label}</div>
+      <div className="truncate text-[0.625rem] uppercase tracking-[0.14em] text-ink-3">{label}</div>
       <div className={cx('mt-1 truncate text-xl font-semibold tabular-nums', toneText[tone], tone === 'good' && 'glow')}>{value}</div>
-      {sub && <div className="mt-0.5 truncate text-[11px] text-ink-3">{sub}</div>}
+      {sub && <div className="mt-0.5 truncate text-[0.6875rem] text-ink-3">{sub}</div>}
     </div>
   );
 }
@@ -84,7 +111,7 @@ export function Badge({ children, tone = 'neutral', title }: { children: ReactNo
     cold: 'border-cold/60 text-cold',
   };
   return (
-    <span title={title} className={cx('inline-flex items-center gap-1 rounded border px-1.5 py-px text-[11px] whitespace-nowrap', border[tone])}>
+    <span title={title} className={cx('inline-flex items-center gap-1 rounded border px-1.5 py-px text-[0.6875rem] whitespace-nowrap', border[tone])}>
       {children}
     </span>
   );
@@ -108,7 +135,7 @@ export function Note({ children, tone = 'neutral' }: { children: ReactNode; tone
   return (
     <div
       className={cx(
-        'flex gap-2 rounded border px-3 py-2 text-[12px] leading-relaxed',
+        'flex gap-2 rounded border px-3 py-2 text-[0.75rem] leading-relaxed',
         tone === 'neutral' && 'border-line text-ink-2',
         tone === 'warn' && 'border-warn/40 bg-warn/5 text-warn',
         tone === 'bad' && 'border-bad/40 bg-bad/5 text-bad',
@@ -130,13 +157,72 @@ export function Empty({ icon, title, children }: { icon: ReactNode; title: strin
   );
 }
 
-export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: ReactNode }) {
-  return (
-    <label className="flex min-w-0 flex-col gap-1">
-      <span className="text-[10px] uppercase tracking-[0.12em] text-ink-3">{label}</span>
+/**
+ * Labelled form row. Use `group` for button groups: a <label> around several
+ * buttons would forward clicks on the label text to the first button.
+ */
+export function Field({ label, children, hint, group = false }: { label: string; children: ReactNode; hint?: ReactNode; group?: boolean }) {
+  const inner = (
+    <>
+      <span className="text-[0.625rem] uppercase tracking-[0.12em] text-ink-3">{label}</span>
       {children}
-      {hint && <span className="text-[11px] text-ink-3">{hint}</span>}
-    </label>
+      {hint && <span className="text-[0.6875rem] text-ink-3">{hint}</span>}
+    </>
+  );
+  return group ? (
+    <div className="flex min-w-0 flex-col gap-1" role="group" aria-label={label}>
+      {inner}
+    </div>
+  ) : (
+    <label className="flex min-w-0 flex-col gap-1">{inner}</label>
+  );
+}
+
+/** Accessible modal dialog: Escape / backdrop closes, focus moves in and is restored on close. */
+export function Modal({ title, onClose, children, wide = false }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    ref.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
+    };
+  }, [onClose]);
+  return (
+    <div
+      className="fade-in fixed inset-0 z-40 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        ref={ref}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className={cx(
+          'panel flex max-h-[92dvh] w-full flex-col outline-none sm:max-h-[88dvh]',
+          wide ? 'sm:max-w-4xl' : 'sm:max-w-lg',
+          'rounded-b-none sm:rounded-md',
+        )}
+      >
+        <header className="flex items-center gap-2 border-b border-line px-4 py-3">
+          <h2 id={titleId} className="panel-title min-w-0 flex-1 truncate">
+            {title}
+          </h2>
+          <button type="button" className="btn px-2 py-1" aria-label="Close" data-sfx="close" onClick={onClose}>
+            <X size={14} />
+          </button>
+        </header>
+        <div className="min-h-0 overflow-y-auto p-4">{children}</div>
+      </div>
+    </div>
   );
 }
 
@@ -148,7 +234,7 @@ export function TileChips({ tiles, highlight, tone = 'neutral' }: { tiles: numbe
         <span
           key={t}
           className={cx(
-            'inline-flex h-5 min-w-6 items-center justify-center rounded-sm border px-1 text-[11px] tabular-nums',
+            'inline-flex h-5 min-w-6 items-center justify-center rounded-sm border px-1 text-[0.6875rem] tabular-nums',
             highlight?.has(t) ? 'border-neon bg-neon/15 text-neon' : tone === 'hot' ? 'border-hot/50 text-hot' : tone === 'cold' ? 'border-cold/50 text-cold' : 'border-line-strong text-ink-2',
           )}
         >

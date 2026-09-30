@@ -2,13 +2,15 @@
  * Side-effecting actions that talk to the workers. Components call these;
  * results flow back into the store.
  */
-import { dataWorker, scanWorker } from '../workers/clients';
+import { dataWorker, picksWorker, scanWorker } from '../workers/clients';
+import { sfx } from '../lib/sfx';
 import { CancelledError } from '../workers/rpc';
 import type { AnalyzeArgs, ArchiveSummary, ExportFormat, ExportKind, PfParams } from '../workers/api';
 import type { NumberBaseSetting } from '../core/parser';
 import type { SourceKind } from '../core/dataset';
 import type { ScanParams } from '../core/scanner';
 import { combosToCsv } from '../core/exporters';
+import { choose } from '../core/payouts';
 import { sourceCount, useStore } from './store';
 
 const get = useStore.getState;
@@ -29,11 +31,20 @@ async function withTask<T>(label: string, fn: (onProgress: (p: { done: number; t
   }
 }
 
+/** Standard mode starts huge datasets on the latest rounds so Top Picks can scan enough combos. */
+export const STANDARD_MAX_DEFAULT = 10_000;
+const STANDARD_BIG = 50_000;
+
+function defaultRange(count: number) {
+  if (get().mode === 'standard' && count > STANDARD_BIG) return { start: count - STANDARD_MAX_DEFAULT, end: count - 1 };
+  return { start: 0, end: count - 1 };
+}
+
 function applyArchive(summary: ArchiveSummary) {
   const s = get();
   const next: Partial<ReturnType<typeof get>> = {
     archive: summary.count > 0 || summary.files.length > 0 ? summary : null,
-    ranges: { ...s.ranges, archive: { start: 0, end: summary.count - 1 } },
+    ranges: { ...s.ranges, archive: defaultRange(summary.count) },
     dataVersion: s.dataVersion + 1,
     verify: null,
   };
@@ -82,7 +93,7 @@ export async function generatePf(params: PfParams) {
   const s = get();
   s.set({
     pf: summary,
-    ranges: { ...s.ranges, pf: { start: 0, end: summary.count - 1 } },
+    ranges: { ...s.ranges, pf: defaultRange(summary.count) },
     dataVersion: s.dataVersion + 1,
     source: s.archive ? s.source : 'pf',
     verify: null,
@@ -294,4 +305,119 @@ export function exportScan(format: ExportFormat) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   if (format === 'csv') downloadText(`keno-scan-${stamp}.csv`, 'text/csv', combosToCsv(r.results));
   else downloadText(`keno-scan-${stamp}.json`, 'application/json', JSON.stringify({ format: 'keno-scanner/scan@1', note: 'tiles are 0-indexed', ...r }, null, 1));
+}
+
+// ---------------------------------------------------------------- Standard mode: Top Picks
+
+export const PICKS_DEPTH = 12;
+
+function picksKey(): string | null {
+  const s = get();
+  if (sourceCount(s) === 0) return null;
+  return JSON.stringify([s.source, s.ranges[s.source], s.dataVersion, s.config.k, s.config.risk]);
+}
+
+/**
+ * Pick a combo budget that keeps a scan around a second on a typical laptop
+ * core: cost ≈ combos × words × (k adds + level checks). Small K is exhaustive.
+ */
+export function picksBudget(n: number, k: number): number {
+  const words = Math.max(1, Math.ceil(n / 32));
+  const perCombo = words * (k + 6);
+  return Math.max(800, Math.min(250_000, Math.floor(7e7 / perCombo)));
+}
+
+export async function runPicks() {
+  const key = picksKey();
+  if (key === null) return;
+  const s = get();
+  const range = s.ranges[s.source];
+  const n = range.end - range.start + 1;
+  const params: ScanParams = {
+    k: s.config.k,
+    threshold: Math.min(s.config.k, Math.max(1, s.config.threshold)),
+    pool: Array.from({ length: 40 }, (_, i) => i),
+    risk: s.config.risk,
+    sort: 'value',
+    depth: PICKS_DEPTH,
+    maxCombos: picksBudget(n, s.config.k),
+    minEvents: 0,
+    seed: 1,
+  };
+  if (s.picks.status === 'running') picksWorker.restart();
+  s.set({ picks: { status: 'running', progress: null, result: s.picks.result, error: null, signature: key } });
+  try {
+    const drawn = await dataWorker.call('scanInput', { source: s.source, range });
+    // Superseded while the window was being copied — don't queue stale work on the fresh worker.
+    if (get().picks.signature !== key) return;
+    const result = await picksWorker.call(
+      'scan',
+      { drawn, params },
+      { transfer: [drawn.buffer], onProgress: (progress) => get().picks.signature === key && get().set({ picks: { ...get().picks, progress } }) },
+    );
+    if (get().picks.signature !== key) return;
+    get().set({ picks: { status: 'done', progress: null, result, error: null, signature: key } });
+    sfx.complete();
+  } catch (e) {
+    if (e instanceof CancelledError || get().picks.signature !== key) return;
+    get().set({ picks: { status: 'error', progress: null, result: null, error: errText(e), signature: key } });
+  }
+}
+
+/** Re-run Top Picks (debounced) whenever Standard mode's inputs change. */
+export function startPicksScheduler(): () => void {
+  let last: string | null = null;
+  let t: ReturnType<typeof setTimeout> | undefined;
+  const onChange = () => {
+    const s = get();
+    if (s.mode !== 'standard') return;
+    const key = picksKey();
+    if (key === last) return;
+    last = key;
+    clearTimeout(t);
+    if (key === null) {
+      get().set({ picks: { status: 'idle', progress: null, result: null, error: null, signature: null } });
+      return;
+    }
+    t = setTimeout(() => void runPicks(), 300);
+  };
+  const unsub = useStore.subscribe(onChange);
+  onChange();
+  return () => {
+    unsub();
+    clearTimeout(t);
+  };
+}
+
+export function picksSpace(k: number): number {
+  return choose(40, k);
+}
+
+export function openDetail(tiles: number[]) {
+  sfx.open();
+  get().set({ detail: { tiles: [...tiles].sort((a, b) => a - b) } });
+}
+
+export function closeDetail() {
+  sfx.close();
+  get().set({ detail: null });
+}
+
+export function copyTiles(tiles: number[]) {
+  const text = tiles.map((t) => t + 1).join(', ');
+  const done = () => get().toast('info', `Copied tiles: ${text}`);
+  try {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => get().toast('info', `Tiles: ${text}`));
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+  get().toast('info', `Tiles: ${text}`);
+}
+
+export function setMode(mode: 'standard' | 'advanced') {
+  if (get().mode === mode) return;
+  get().set({ mode });
 }

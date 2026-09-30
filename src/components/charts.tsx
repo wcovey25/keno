@@ -3,7 +3,7 @@
  * (≤ ~600 points), so rendering is cheap and needs no chart library.
  */
 import { useMemo, useState, type PointerEvent } from 'react';
-import { useWidth } from '../lib/useWidth';
+import { useRemScale, useWidth } from '../lib/useWidth';
 import { fmtInt, fmtNum } from '../lib/format';
 
 const OBSERVED = '#1aa865';
@@ -31,7 +31,7 @@ export function LineChart({
   x,
   y,
   xOffset = 0,
-  height = 220,
+  height: baseHeight = 220,
   label,
   valueLabel,
   xLabel = 'Bet',
@@ -46,7 +46,10 @@ export function LineChart({
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
-  const pad = { l: 48, r: 12, t: 10, b: 24 };
+  const k = useRemScale();
+  const height = Math.round(baseHeight * k);
+  const fs = 10 * k;
+  const pad = { l: Math.round(48 * k), r: 12, t: 10, b: Math.round(24 * k) };
   const w = Math.max(0, width - pad.l - pad.r);
   const h = height - pad.t - pad.b;
 
@@ -92,13 +95,13 @@ export function LineChart({
           {geo.yTicks.map((t) => (
             <g key={t}>
               <line x1={pad.l} x2={pad.l + w} y1={geo.sy(t)} y2={geo.sy(t)} stroke={GRID} strokeWidth={1} />
-              <text x={pad.l - 6} y={geo.sy(t)} dy="0.32em" textAnchor="end" fontSize={10} fill={AXIS_TEXT}>
+              <text x={pad.l - 6} y={geo.sy(t)} dy="0.32em" textAnchor="end" fontSize={fs} fill={AXIS_TEXT}>
                 {compact(t)}
               </text>
             </g>
           ))}
           {geo.xTicks.map((t) => (
-            <text key={t} x={geo.sx(t)} y={height - 6} textAnchor="middle" fontSize={10} fill={AXIS_TEXT}>
+            <text key={t} x={geo.sx(t)} y={height - 6} textAnchor="middle" fontSize={fs} fill={AXIS_TEXT}>
               {compact(t + xOffset)}
             </text>
           ))}
@@ -116,7 +119,7 @@ export function LineChart({
       )}
       {geo && hover !== null && (
         <div
-          className="pointer-events-none absolute top-1 z-10 rounded border border-line-strong bg-panel/95 px-2 py-1 text-[11px] shadow-lg"
+          className="pointer-events-none absolute top-1 z-10 rounded border border-line-strong bg-panel/95 px-2 py-1 text-[0.6875rem] shadow-lg"
           style={{ left: Math.min(Math.max(0, geo.sx(x[hover]) + 8), Math.max(0, width - 150)) }}
         >
           <div className="text-ink-3">
@@ -136,7 +139,7 @@ export function DistChart({
   categories,
   observed,
   expected,
-  height = 180,
+  height: baseHeight = 180,
   label,
   categoryLabel = 'Matches',
 }: {
@@ -149,7 +152,10 @@ export function DistChart({
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
-  const pad = { l: 44, r: 8, t: 8, b: 22 };
+  const k = useRemScale();
+  const height = Math.round(baseHeight * k);
+  const fs = 10 * k;
+  const pad = { l: Math.round(44 * k), r: 8, t: 8, b: Math.round(22 * k) };
   const w = Math.max(0, width - pad.l - pad.r);
   const h = height - pad.t - pad.b;
   const max = Math.max(1, ...observed, ...expected);
@@ -166,7 +172,7 @@ export function DistChart({
             {ticks.map((t) => (
               <g key={t}>
                 <line x1={pad.l} x2={pad.l + w} y1={sy(t)} y2={sy(t)} stroke={GRID} />
-                <text x={pad.l - 6} y={sy(t)} dy="0.32em" textAnchor="end" fontSize={10} fill={AXIS_TEXT}>
+                <text x={pad.l - 6} y={sy(t)} dy="0.32em" textAnchor="end" fontSize={fs} fill={AXIS_TEXT}>
                   {compact(t)}
                 </text>
               </g>
@@ -185,7 +191,7 @@ export function DistChart({
                     />
                   )}
                   <line x1={cx - barW / 2 - 3} x2={cx + barW / 2 + 3} y1={sy(expected[i])} y2={sy(expected[i])} stroke={EXPECTED} strokeWidth={2} strokeLinecap="round" />
-                  <text x={cx} y={height - 6} textAnchor="middle" fontSize={10} fill={AXIS_TEXT}>
+                  <text x={cx} y={height - 6} textAnchor="middle" fontSize={fs} fill={AXIS_TEXT}>
                     {c}
                   </text>
                 </g>
@@ -195,7 +201,7 @@ export function DistChart({
         )}
         {hover !== null && width > 0 && (
           <div
-            className="pointer-events-none absolute top-1 z-10 rounded border border-line-strong bg-panel/95 px-2 py-1 text-[11px] shadow-lg"
+            className="pointer-events-none absolute top-1 z-10 rounded border border-line-strong bg-panel/95 px-2 py-1 text-[0.6875rem] shadow-lg"
             style={{ left: Math.min(pad.l + band * hover + band / 2 + 8, Math.max(0, width - 160)) }}
           >
             <div className="text-ink-3">
@@ -209,7 +215,7 @@ export function DistChart({
           </div>
         )}
       </div>
-      <div className="mt-1 flex gap-4 text-[11px] text-ink-2">
+      <div className="mt-1 flex gap-4 text-[0.6875rem] text-ink-2">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: OBSERVED }} /> Observed
         </span>

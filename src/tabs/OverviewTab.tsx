@@ -12,7 +12,7 @@ function TopList({ title, icon, tiles, value, tone }: { title: string; icon: Rea
     <Panel title={title} icon={icon} bodyClass="p-2">
       <ul className="space-y-1">
         {tiles.map((t) => (
-          <li key={t.tile} className="flex items-center justify-between gap-2 px-1 text-[12px]">
+          <li key={t.tile} className="flex items-center justify-between gap-2 px-1 text-[0.75rem]">
             <TileChips tiles={[t.tile]} tone={tone} />
             <span className="tabular-nums text-ink-2">{value(t)}</span>
           </li>
@@ -78,12 +78,12 @@ export function OverviewTab() {
       </div>
 
       {rtp && rtp.series.x.length > 1 && (
-        <Panel title="Cumulative profit (bet units)" actions={<button type="button" className="btn px-2 py-0.5 text-[11px]" onClick={() => setTab('rtp')}>RTP details →</button>}>
+        <Panel title="Cumulative profit (bet units)" actions={<button type="button" className="btn px-2 py-0.5 text-[0.6875rem]" onClick={() => setTab('rtp')}>RTP details →</button>}>
           <LineChart x={rtp.series.x} y={rtp.series.y} label="Cumulative profit of archive bets in bet units" valueLabel="Net" xOffset={a.range.start + 1} />
         </Panel>
       )}
       {!rtp && set && set.sim.series.x.length > 1 && (
-        <Panel title={`Simulated profit — tracked set on ${RISK_LABEL[set.risk]}`} actions={<button type="button" className="btn px-2 py-0.5 text-[11px]" onClick={() => setTab('overdue')}>Tracker →</button>}>
+        <Panel title={`Simulated profit — tracked set on ${RISK_LABEL[set.risk]}`} actions={<button type="button" className="btn px-2 py-0.5 text-[0.6875rem]" onClick={() => setTab('overdue')}>Tracker →</button>}>
           <LineChart x={set.sim.series.x} y={set.sim.series.y} label="Simulated cumulative profit in bet units" valueLabel="Net" xOffset={a.range.start + 1} xLabel="Round" />
         </Panel>
       )}

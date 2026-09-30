@@ -101,7 +101,7 @@ export function DataTable<T>({
         </table>
       </div>
       {pageSize && pages > 1 && (
-        <div className="mt-2 flex items-center justify-end gap-2 text-[11px] text-ink-3">
+        <div className="mt-2 flex items-center justify-end gap-2 text-[0.6875rem] text-ink-3">
           <button type="button" className="btn px-2 py-0.5" disabled={current === 0} onClick={() => setPage(current - 1)}>
             Prev
           </button>

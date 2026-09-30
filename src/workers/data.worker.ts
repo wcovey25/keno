@@ -26,7 +26,7 @@ import {
   type ParsedFile,
 } from '../core/parser';
 import { KENO_DRAWS, checkServerSeedHash, createKenoGenerator } from '../core/provablyFair';
-import { analyzeArchiveRtp, analyzeSet, analyzeTiles } from '../core/stats';
+import { analyzeArchiveRtp, analyzeLevels, analyzeSet, analyzeTiles } from '../core/stats';
 import { drawRow, drawsToCsv, drawsToJson, tilesToCsv } from '../core/exporters';
 
 const MAX_PF_ROUNDS = 5_000_000;
@@ -266,6 +266,16 @@ serve<DataApi>({
       }
     }
     return res;
+  },
+
+  comboDetail({ source, range, tiles, risk }) {
+    const c = columnsFor(source);
+    const r = clampRange(range, c.n);
+    if (tiles.length < 1 || tiles.length > 10) throw new Error('Pick 1–10 tiles');
+    const levels = analyzeLevels(c, r, tiles, risk);
+    const scored = levels.filter((l) => !Number.isNaN(l.score));
+    const threshold = scored.length ? scored.reduce((a, b) => (b.score > a.score ? b : a)).m : Math.ceil(tiles.length / 2);
+    return { tiles, risk, n: r.end - r.start + 1, levels, set: analyzeSet(c, r, tiles, threshold, risk), threshold };
   },
 
   timeToRange({ source, from, to }): Range | null {
