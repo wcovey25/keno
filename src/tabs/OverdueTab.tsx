@@ -15,7 +15,7 @@ export default function OverdueTab() {
   if (!set || config.tiles.length === 0) {
     return (
       <Panel title="Tile-set tracker">
-        <div className="grid gap-6 md:grid-cols-[minmax(0,320px)_1fr]">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,320px)_1fr]">
           <TilePicker />
           <div className="space-y-3 text-ink-2">
             <p>
@@ -67,7 +67,7 @@ export default function OverdueTab() {
         <Stat label="Win rate" value={fmtPct(set.sim.winRate)} sub={`best ${fmtMult(set.sim.bestMultiplier)}`} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Panel title="Matches per draw — observed vs expected">
           <DistChart
             categories={set.histogram.map((_, i) => String(i))}

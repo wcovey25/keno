@@ -296,7 +296,7 @@ function HowItWorks() {
 
 export function StandardView() {
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)_minmax(0,30rem)]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)_minmax(0,30rem)]">
       <div className="space-y-4">
         <LoadCard />
         <GameCard />

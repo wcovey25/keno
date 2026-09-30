@@ -129,7 +129,7 @@ export default function RtpTab() {
           <Panel title="By risk × picks" bodyClass="p-0">
             <DataTable rows={rtp.groups} columns={groupCols} rowKey={(g) => `${g.risk}-${g.picks}`} initialSort={{ key: 'bets', dir: 'desc' }} />
           </Panel>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <Panel title="By currency (weighted by stake)" bodyClass="p-0">
               <DataTable rows={rtp.currencies} columns={currencyCols} rowKey={(c) => c.currency} empty="No amounts in export" />
             </Panel>

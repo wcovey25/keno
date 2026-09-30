@@ -33,7 +33,7 @@ export default function ExportTab() {
   );
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
       <Card title="Draws in window" desc={`${fmtInt(n)} ${source === 'archive' ? 'bets' : 'rounds'} with drawn squares (1–40), picks, multipliers.`}>
         <button type="button" className="btn" disabled={busy} onClick={() => void exportData('draws', 'csv')}>{csv}</button>
         <button type="button" className="btn" disabled={busy} onClick={() => void exportData('draws', 'json')}>{json}</button>

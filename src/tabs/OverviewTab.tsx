@@ -66,11 +66,11 @@ export function OverviewTab() {
         )}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <Panel title="Board heatmap">
           <HeatBoard />
         </Panel>
-        <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
           <TopList title="Hot" icon={<Flame size={14} />} tiles={byZ.slice(0, 6)} tone="hot" value={(x) => `${fmtInt(x.count)} · z ${fmtSigned(x.z, 1)}`} />
           <TopList title="Cold" icon={<Snowflake size={14} />} tiles={byZ.slice(-6).reverse()} tone="cold" value={(x) => `${fmtInt(x.count)} · z ${fmtSigned(x.z, 1)}`} />
           <TopList title="Longest drought" icon={<Hourglass size={14} />} tiles={byDrought.slice(0, 6)} tone="neutral" value={(x) => `${fmtInt(x.currentDrought)} draws`} />

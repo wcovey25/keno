@@ -35,7 +35,7 @@ export default function TilesTab() {
   const t = a.tiles;
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel title="Frequency map">
           <HeatBoard />
         </Panel>
@@ -56,7 +56,7 @@ export default function TilesTab() {
       <Panel title="All 40 tiles" bodyClass="p-0">
         <DataTable rows={t.tiles} columns={tileCols} rowKey={(r) => r.tile} initialSort={{ key: 'tile', dir: 'asc' }} maxHeight={520} />
       </Panel>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title={`Most frequent pairs (top ${Math.min(depth, t.topPairs.length)})`} bodyClass="p-0">
           <DataTable rows={t.topPairs} columns={pairCols} rowKey={(p) => `${p.a}-${p.b}`} maxHeight={420} />
         </Panel>

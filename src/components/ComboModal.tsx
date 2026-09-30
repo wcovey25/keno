@@ -46,7 +46,7 @@ export function ComboModal() {
 
   return (
     <Modal wide title={`${tiles.length}-tile combination · ${RISK_LABEL[risk]}`} onClose={closeDetail}>
-      <div className="grid gap-5 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
         <div className="space-y-3">
           <Board size="sm" selected={selected} label="Combination tiles" />
           <TileChips tiles={tiles} highlight={selected} />

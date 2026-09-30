@@ -72,7 +72,7 @@ function AdvancedView() {
   const hasData = useStore((s) => sourceCount(s) > 0);
   const analysisError = useStore((s) => s.analysisError);
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] 2xl:grid-cols-[22rem_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] 2xl:grid-cols-[22rem_minmax(0,1fr)]">
       <aside className="space-y-4">
         <DataPanel />
         <ConfigPanel />

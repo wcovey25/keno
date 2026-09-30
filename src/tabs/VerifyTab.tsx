@@ -30,7 +30,7 @@ function SingleRound() {
 
   return (
     <Panel title="Verify a single round" icon={<ShieldCheck size={14} />}>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
         <div className="space-y-2.5">
           <Field label="Server seed (unhashed)">
             <input className="field font-mono text-[0.75rem]" spellCheck={false} autoComplete="off" value={serverSeed} onChange={(e) => setServerSeed(e.target.value.trim())} />

@@ -89,7 +89,7 @@ export default function ScannerTab() {
   return (
     <div className="space-y-4">
       <Panel title="Combination scanner" icon={<Crosshair size={14} />}>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="space-y-3">
             <Field group label="Rank by">
               <Seg label="Rank combinations by" value={scanConfig.sort} onChange={(sort) => setScanConfig({ sort })} options={SORTS} />

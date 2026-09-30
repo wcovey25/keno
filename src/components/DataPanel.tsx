@@ -292,6 +292,8 @@ export function DataPanel() {
   const hasData = useStore((s) => (s.archive?.count ?? 0) + (s.pf?.count ?? 0) > 0);
   return (
     <Panel
+      // On narrow screens, remount (and so collapse) once data arrives so results come into view.
+      key={isWideScreen() ? 'wide' : String(hasData)}
       title="Data sources"
       collapsible
       defaultOpen={isWideScreen() || !hasData}
